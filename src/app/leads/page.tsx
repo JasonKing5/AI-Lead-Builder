@@ -48,20 +48,57 @@ export default function LeadsPage() {
     }
   }
 
+  const exportToCSV = () => {
+    const headers = ['Name', 'Role', 'Company', 'LinkedIn', 'Status', 'Message'];
+    const csvRows = [
+      headers.join(','),
+      ...leads.map(lead => 
+        [
+          `"${lead.name || ''}"`,
+          `"${lead.role || ''}"`,
+          `"${lead.company || ''}"`,
+          `"${lead.linkedin_url || ''}"`,
+          `"${lead.status || ''}"`,
+          `"${(lead.message || '').replace(/"/g, '""')}"`
+        ].join(',')
+      )
+    ].join('\n');
+
+    const blob = new Blob([csvRows], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', `leads_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
   return (
     <div className="container mx-auto py-6 px-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Leads Management</h1>
-        <Tabs 
-          value={view} 
-          onValueChange={(value) => setView(value as 'table' | 'board')}
-          className="w-[400px]"
-        >
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="table">Table View</TabsTrigger>
-            <TabsTrigger value="board">Board View</TabsTrigger>
-          </TabsList>
-        </Tabs>
+      <div className="flex flex-col space-y-4 mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <h1 className="text-3xl font-bold">Leads Management</h1>
+            <Tabs 
+              value={view} 
+              onValueChange={(value) => setView(value as 'table' | 'board')}
+            >
+              <TabsList>
+                <TabsTrigger value="table">Table</TabsTrigger>
+                <TabsTrigger value="board">Board</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+          <button
+            onClick={exportToCSV}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            disabled={leads.length === 0}
+          >
+            Export to CSV
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow">

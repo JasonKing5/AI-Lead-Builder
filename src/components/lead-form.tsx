@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { cn } from '@/lib/utils'
 
-// Define the form schema
+// Add message field to the form schema
 const formSchema = z.object({
   name: z.string().min(2, {
     message: "Name must be at least 2 characters.",
@@ -20,18 +20,22 @@ const formSchema = z.object({
   linkedinUrl: z.string().url({
     message: "Please enter a valid URL.",
   }).optional().or(z.literal('')),
+  message: z.string().optional(), // Add message field
 })
 
 type FormValues = z.infer<typeof formSchema>
 
 export function LeadForm() {
+  const [isGenerating, setIsGenerating] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-    reset
+    reset,
+    setValue,
+    watch,
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -39,8 +43,45 @@ export function LeadForm() {
       role: '',
       company: '',
       linkedinUrl: '',
+      message: '',
     },
   })
+
+  // Watch form values
+  const name = watch('name')
+  const role = watch('role')
+  const company = watch('company')
+
+  // Generate message using OpenAI
+  const generateMessage = async () => {
+    if (!name || !role || !company) {
+      alert('Please fill in name, role, and company first')
+      return
+    }
+
+    setIsGenerating(true)
+    try {
+      const response = await fetch('/api/generate-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, role, company }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate message')
+      }
+
+      const data = await response.json()
+      setValue('message', data.message)
+    } catch (error) {
+      console.error('Error generating message:', error)
+      alert('Failed to generate message. Please try again.')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true)
@@ -63,7 +104,7 @@ export function LeadForm() {
         <h2 className="text-2xl font-bold mb-6">Add New Lead</h2>
         
         <div className="space-y-4">
-          {/* Name Field */}
+          {/* Existing form fields remain the same */}
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
               Name <span className="text-red-500">*</span>
@@ -82,7 +123,6 @@ export function LeadForm() {
             )}
           </div>
 
-          {/* Role Field */}
           <div>
             <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
               Role <span className="text-red-500">*</span>
@@ -101,7 +141,6 @@ export function LeadForm() {
             )}
           </div>
 
-          {/* Company Field */}
           <div>
             <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1">
               Company <span className="text-red-500">*</span>
@@ -120,7 +159,6 @@ export function LeadForm() {
             )}
           </div>
 
-          {/* LinkedIn URL Field */}
           <div>
             <label htmlFor="linkedinUrl" className="block text-sm font-medium text-gray-700 mb-1">
               LinkedIn URL (Optional)
@@ -140,8 +178,37 @@ export function LeadForm() {
             )}
           </div>
 
-          {/* Submit Button */}
-          <div className="pt-4">
+          {/* Add message generation section */}
+          <div className="pt-2">
+            <div className="flex justify-between items-center mb-2">
+              <label htmlFor="message" className="block text-sm font-medium text-gray-700">
+                Outreach Message
+              </label>
+              <button
+                type="button"
+                onClick={generateMessage}
+                disabled={isGenerating || !name || !role || !company}
+                className="text-sm text-blue-600 hover:text-blue-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+              >
+                {isGenerating ? 'Generating...' : 'Generate with AI'}
+              </button>
+            </div>
+            <textarea
+              id="message"
+              rows={4}
+              className={cn(
+                "w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500",
+                errors.message ? "border-red-500" : "border-gray-300"
+              )}
+              placeholder="Click 'Generate with AI' to create a personalized message or type your own"
+              {...register("message")}
+            />
+            {errors.message && (
+              <p className="mt-1 text-sm text-red-600">{errors.message.message}</p>
+            )}
+          </div>
+
+          <div className="pt-2">
             <button
               type="submit"
               disabled={isSubmitting}

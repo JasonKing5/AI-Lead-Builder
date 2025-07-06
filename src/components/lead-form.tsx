@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { cn } from '@/lib/utils'
+import { leadService } from '@/lib/supabase/lead.service'
 
 // Add message field to the form schema
 const formSchema = z.object({
@@ -86,8 +87,16 @@ export function LeadForm() {
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true)
     try {
-      console.log('Form submitted:', data)
-      // Here we'll later add the API call to save the lead
+      const leadData = {
+        name: data.name,
+        role: data.role,
+        company: data.company,
+        linkedin_url: data.linkedinUrl || null,
+        message: data.message || null,
+        status: 'Draft' as const
+      }
+  
+      await leadService.createLead(leadData)
       alert('Lead saved successfully!')
       reset()
     } catch (error) {

@@ -23,7 +23,9 @@ const formSchema = z.object({
   linkedinUrl: z.string().url({
     message: "Please enter a valid URL.",
   }).optional().or(z.literal('')),
-  message: z.string().optional(), // Add message field
+  message: z.string().min(1, {
+    message: "Outreach message is required.",
+  }),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -107,12 +109,16 @@ export function LeadForm() {
     setIsSubmitting(true)
     const toastId = toast.loading('Saving lead...')
     try {
+      if (!data.message) {
+        throw new Error('Outreach message is required')
+      }
+      
       const leadData = {
         name: data.name,
         role: data.role,
         company: data.company,
         linkedin_url: data.linkedinUrl || null,
-        message: data.message || null,
+        message: data.message,
         status: 'Draft' as const
       }
   
@@ -223,15 +229,15 @@ export function LeadForm() {
           <div className="pt-2">
             <div className="flex justify-between items-center mb-2">
               <label htmlFor="message" className="block text-sm font-medium text-gray-700">
-                Outreach Message
+                Outreach Message <span className="text-red-500">*</span>
               </label>
               <button
                 type="button"
                 onClick={generateMessage}
                 disabled={isGenerating || !name || !role || !company}
-                className="text-sm text-blue-600 hover:text-blue-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isGenerating ? 'Generating...' : 'Generate with AI'}
+                {isGenerating ? 'Generating...' : 'Generate'}
               </button>
             </div>
             <textarea
@@ -241,8 +247,8 @@ export function LeadForm() {
                 "w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500",
                 errors.message ? "border-red-500" : "border-gray-300"
               )}
-              placeholder="Click 'Generate with AI' to create a personalized message or type your own"
-              {...register("message")}
+              placeholder="Click 'Generate Message' to create a personalized message or type your own"
+              {...register("message", { required: true })}
             />
             {errors.message && (
               <p className="mt-1 text-sm text-red-600">{errors.message.message}</p>
@@ -252,7 +258,7 @@ export function LeadForm() {
           <div className="pt-2">
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !name || !role || !company || !watch('message')}
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? 'Saving...' : 'Save Lead'}

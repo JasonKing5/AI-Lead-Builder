@@ -6,14 +6,15 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { cn } from '@/lib/utils'
 import { leadService } from '@/lib/supabase/lead.service'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 // Add message field to the form schema
 const formSchema = z.object({
   name: z.string().min(2, {
     message: "Name must be at least 2 characters.",
   }),
-  role: z.string().min(2, {
-    message: "Role must be at least 2 characters.",
+  role: z.string().min(1, {
+    message: "Please select a role.",
   }),
   company: z.string().min(2, {
     message: "Company name must be at least 2 characters.",
@@ -47,6 +48,21 @@ export function LeadForm() {
       message: '',
     },
   })
+
+  // Role options
+  const ROLE_OPTIONS = [
+    'CEO',
+    'CTO',
+    'Product Manager',
+    'Engineering Manager',
+    'Frontend Developer',
+    'Backend Developer',
+    'Full Stack Developer',
+    'UX/UI Designer',
+    'Marketing Director',
+    'Sales Manager',
+    'Other'
+  ]
 
   // Watch form values
   const name = watch('name')
@@ -136,15 +152,27 @@ export function LeadForm() {
             <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
               Role <span className="text-red-500">*</span>
             </label>
-            <input
-              id="role"
-              type="text"
-              className={cn(
-                "w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500",
-                errors.role ? "border-red-500" : "border-gray-300"
-              )}
-              {...register("role")}
-            />
+            <Select
+              onValueChange={(value) => setValue('role', value, { shouldValidate: true })}
+              value={role || ''}
+            >
+              <SelectTrigger
+                id="role"
+                className={cn(
+                  "w-full",
+                  errors.role ? "border-red-500" : "border-gray-300"
+                )}
+              >
+                <SelectValue placeholder="Select a role" />
+              </SelectTrigger>
+              <SelectContent>
+                {ROLE_OPTIONS.map((roleOption) => (
+                  <SelectItem key={roleOption} value={roleOption}>
+                    {roleOption}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {errors.role && (
               <p className="mt-1 text-sm text-red-600">{errors.role.message}</p>
             )}

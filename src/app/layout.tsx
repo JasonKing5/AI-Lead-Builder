@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { CustomLink } from '@/components/ui/link'
+import { Toaster } from 'sonner'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,6 +39,7 @@ export default function RootLayout({
           </div>
         </header>
         {children}
+        <Toaster position="top-right" richColors />
       </body>
     </html>
   );

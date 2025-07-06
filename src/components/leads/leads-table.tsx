@@ -15,10 +15,13 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Lead, LeadStatus } from '@/lib/supabase/types'
 import { leadService } from '@/lib/supabase/lead.service'
+import { toast } from 'sonner'
+import { Loader2 } from 'lucide-react'
 
 export function LeadsTable() {
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
+  const [updatingLeads, setUpdatingLeads] = useState<Record<string, boolean>>({})
   const [globalFilter, setGlobalFilter] = useState('')
 
   const columns: ColumnDef<Lead>[] = [
@@ -61,26 +64,37 @@ export function LeadsTable() {
     },
     {
       id: 'actions',
-      cell: ({ row }) => (
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleStatusUpdate(row.original.id, 'Approved')}
-            disabled={row.original.status === 'Approved'}
-          >
-            Approve
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleStatusUpdate(row.original.id, 'Sent')}
-            disabled={row.original.status === 'Sent'}
-          >
-            Mark as Sent
-          </Button>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const isUpdating = updatingLeads[row.original.id]
+        return (
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleStatusUpdate(row.original.id, 'Approved')}
+              disabled={row.original.status === 'Approved' || isUpdating}
+              className="min-w-[100px]"
+            >
+              {isUpdating && row.original.status !== 'Approved' ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              {row.original.status === 'Approved' ? 'Approved' : 'Approve'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleStatusUpdate(row.original.id, 'Sent')}
+              disabled={row.original.status === 'Sent' || isUpdating}
+              className="min-w-[120px]"
+            >
+              {isUpdating && row.original.status !== 'Sent' ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              {row.original.status === 'Sent' ? 'Sent' : 'Mark as Sent'}
+            </Button>
+          </div>
+        )
+      },
     },
   ]
 
@@ -113,20 +127,45 @@ export function LeadsTable() {
   }
 
   const handleStatusUpdate = async (id: string, status: LeadStatus) => {
+    const previousLeads = [...leads]
+    const leadName = leads.find(lead => lead.id === id)?.name || 'Lead'
+    
     try {
+      // Optimistic update
+      setLeads(prev => 
+        prev.map(lead => 
+          lead.id === id ? { ...lead, status } : lead
+        )
+      )
+      
+      setUpdatingLeads(prev => ({ ...prev, [id]: true }))
+      
       await leadService.updateLead(id, { status })
-      fetchLeads() // Refresh the list
+      
+      toast.success(`${leadName} marked as ${status.toLowerCase()}`)
     } catch (error) {
       console.error('Error updating lead status:', error)
+      // Revert on error
+      setLeads(previousLeads)
+      toast.error(`Failed to update ${leadName.toLowerCase()}`)
+    } finally {
+      setUpdatingLeads(prev => ({ ...prev, [id]: false }))
     }
   }
 
   if (loading) {
-    return <div className="p-6">Loading leads...</div>
+    return (
+      <div className="flex items-center justify-center p-12">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+          <p className="text-gray-600">Loading leads...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="w-full p-6">
+    <div className="w-full p-6 animate-fade-in">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Leads Management</h2>
         <div className="flex items-center space-x-4">
@@ -158,7 +197,16 @@ export function LeadsTable() {
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  <div className="flex items-center justify-center">
+                    <Loader2 className="mr-2 h-6 w-6 animate-spin text-blue-500" />
+                    <span>Loading leads...</span>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}

@@ -7,6 +7,7 @@ import * as z from 'zod'
 import { cn } from '@/lib/utils'
 import { leadService } from '@/lib/supabase/lead.service'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { toast } from 'sonner'
 
 // Add message field to the form schema
 const formSchema = z.object({
@@ -72,11 +73,12 @@ export function LeadForm() {
   // Generate message using OpenAI
   const generateMessage = async () => {
     if (!name || !role || !company) {
-      alert('Please fill in name, role, and company first')
+      toast.error('Please fill in name, role, and company first')
       return
     }
 
     setIsGenerating(true)
+    const toastId = toast.loading('Generating message...')
     try {
       const response = await fetch('/api/generate-message', {
         method: 'POST',
@@ -92,9 +94,10 @@ export function LeadForm() {
 
       const data = await response.json()
       setValue('message', data.message)
+      toast.success('Message generated successfully!', { id: toastId })
     } catch (error) {
       console.error('Error generating message:', error)
-      alert('Failed to generate message. Please try again.')
+      toast.error('Failed to generate message. Please try again.', { id: toastId })
     } finally {
       setIsGenerating(false)
     }
@@ -102,6 +105,7 @@ export function LeadForm() {
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true)
+    const toastId = toast.loading('Saving lead...')
     try {
       const leadData = {
         name: data.name,
@@ -113,11 +117,11 @@ export function LeadForm() {
       }
   
       await leadService.createLead(leadData)
-      alert('Lead saved successfully!')
+      toast.success('Lead saved successfully!', { id: toastId })
       reset()
     } catch (error) {
       console.error('Error saving lead:', error)
-      alert('Failed to save lead. Please try again.')
+      toast.error('Failed to save lead. Please try again.', { id: toastId })
     } finally {
       setIsSubmitting(false)
     }

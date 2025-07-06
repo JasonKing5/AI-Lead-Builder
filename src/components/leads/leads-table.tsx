@@ -13,16 +13,28 @@ import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+
 import { Lead, LeadStatus } from '@/lib/supabase/types'
 import { leadService } from '@/lib/supabase/lead.service'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
-export function LeadsTable() {
-  const [leads, setLeads] = useState<Lead[]>([])
-  const [loading, setLoading] = useState(true)
+interface LeadsTableProps {
+  leads: Lead[]
+  loading: boolean
+  onLeadUpdate: (id: string, updates: Partial<Lead>) => Promise<void>
+}
+
+export function LeadsTable({ leads, loading, onLeadUpdate }: LeadsTableProps) {
   const [updatingLeads, setUpdatingLeads] = useState<Record<string, boolean>>({})
   const [globalFilter, setGlobalFilter] = useState('')
+
+  // Status display configuration
+  const statusConfig: Record<LeadStatus, { label: string; color: string }> = {
+    'Draft': { label: 'Draft', color: 'bg-yellow-100 text-yellow-800' },
+    'Approved': { label: 'Approved', color: 'bg-blue-100 text-blue-800' },
+    'Sent': { label: 'Sent', color: 'bg-green-100 text-green-800' }
+  }
 
   const columns: ColumnDef<Lead>[] = [
     {
@@ -42,17 +54,11 @@ export function LeadsTable() {
       accessorKey: 'status',
       header: 'Status',
       cell: ({ row }) => {
-        const status = row.getValue('status') as LeadStatus
-        const statusColors = {
-          Draft: 'bg-yellow-100 text-yellow-800',
-          Approved: 'bg-blue-100 text-blue-800',
-          Sent: 'bg-green-100 text-green-800',
-        }
+        const status = row.original.status
+        const config = statusConfig[status]
         return (
-          <span
-            className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[status]}`}
-          >
-            {status}
+          <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
+            {config.label}
           </span>
         )
       },
@@ -65,32 +71,34 @@ export function LeadsTable() {
     {
       id: 'actions',
       cell: ({ row }) => {
-        const isUpdating = updatingLeads[row.original.id]
+        const { status, id } = row.original
+        const isUpdating = updatingLeads[id]
+        
         return (
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleStatusUpdate(row.original.id, 'Approved')}
-              disabled={row.original.status === 'Approved' || isUpdating}
+              onClick={() => handleStatusUpdate(id, 'Approved')}
+              disabled={status !== 'Draft' || isUpdating}
               className="min-w-[100px]"
             >
-              {isUpdating && row.original.status !== 'Approved' ? (
+              {isUpdating && status === 'Draft' ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
-              {row.original.status === 'Approved' ? 'Approved' : 'Approve'}
+              Approve
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleStatusUpdate(row.original.id, 'Sent')}
-              disabled={row.original.status === 'Sent' || isUpdating}
+              onClick={() => handleStatusUpdate(id, 'Sent')}
+              disabled={status !== 'Approved' || isUpdating}
               className="min-w-[120px]"
             >
-              {isUpdating && row.original.status !== 'Sent' ? (
+              {isUpdating && status === 'Approved' ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
-              {row.original.status === 'Sent' ? 'Sent' : 'Mark as Sent'}
+              Mark as Sent
             </Button>
           </div>
         )
@@ -110,44 +118,30 @@ export function LeadsTable() {
     },
   })
 
-  useEffect(() => {
-    fetchLeads()
-  }, [])
+  const handleStatusUpdate = async (id: string, newStatus: LeadStatus) => {
+    const lead = leads.find(l => l.id === id)
+    if (!lead) return
 
-  const fetchLeads = async () => {
-    try {
-      setLoading(true)
-      const data = await leadService.getLeads()
-      setLeads(data)
-    } catch (error) {
-      console.error('Error fetching leads:', error)
-    } finally {
-      setLoading(false)
+    // Define allowed status transitions
+    const allowedTransitions: Record<LeadStatus, LeadStatus[]> = {
+      'Draft': ['Approved'],
+      'Approved': ['Sent'],
+      'Sent': []
     }
-  }
 
-  const handleStatusUpdate = async (id: string, status: LeadStatus) => {
-    const previousLeads = [...leads]
-    const leadName = leads.find(lead => lead.id === id)?.name || 'Lead'
-    
+    // Check if the transition is allowed
+    if (!allowedTransitions[lead.status].includes(newStatus)) {
+      toast.error(`Cannot change status from ${lead.status} to ${newStatus}`)
+      return
+    }
+
     try {
-      // Optimistic update
-      setLeads(prev => 
-        prev.map(lead => 
-          lead.id === id ? { ...lead, status } : lead
-        )
-      )
-      
       setUpdatingLeads(prev => ({ ...prev, [id]: true }))
-      
-      await leadService.updateLead(id, { status })
-      
-      toast.success(`${leadName} marked as ${status.toLowerCase()}`)
+      await onLeadUpdate(id, { status: newStatus })
+      toast.success(`Lead status updated to ${newStatus}`)
     } catch (error) {
       console.error('Error updating lead status:', error)
-      // Revert on error
-      setLeads(previousLeads)
-      toast.error(`Failed to update ${leadName.toLowerCase()}`)
+      toast.error('Failed to update lead status')
     } finally {
       setUpdatingLeads(prev => ({ ...prev, [id]: false }))
     }

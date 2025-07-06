@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { CustomLink } from '@/components/ui/link'
 import { Toaster } from 'sonner'
+import { Navigation } from '@/components/navigation'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,13 +29,16 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <header className="bg-white shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <h1 className="text-xl font-bold">AI Lead Builder</h1>
-            <nav className="space-x-4">
-              <CustomLink href="/">Add Lead</CustomLink>
-              <CustomLink href="/leads">View Leads</CustomLink>
-            </nav>
+        <header className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-4">
+              <div className="flex items-center space-x-8">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
+                  AI Lead Builder
+                </h1>
+                <Navigation />
+              </div>
+            </div>
           </div>
         </header>
         {children}

@@ -147,3 +147,7 @@ The primary goal is to create an efficient system for generating and managing pe
    pnpm run dev
    ```
 5. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+### Online Demo
+
+You can try out the demo [here](https://ai-lead-builder.vercel.app/).

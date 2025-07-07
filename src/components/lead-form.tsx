@@ -23,9 +23,7 @@ const formSchema = z.object({
   linkedinUrl: z.string().url({
     message: "Please enter a valid URL.",
   }).optional().or(z.literal('')),
-  message: z.string().min(1, {
-    message: "Outreach message is required.",
-  }),
+  message: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -229,7 +227,7 @@ export function LeadForm() {
           <div className="pt-2">
             <div className="flex justify-between items-center mb-2">
               <label htmlFor="message" className="block text-sm font-medium text-gray-700">
-                Outreach Message <span className="text-red-500">*</span>
+                Outreach Message
               </label>
               <button
                 type="button"

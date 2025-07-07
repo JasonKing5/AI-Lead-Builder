@@ -1,12 +1,11 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { DndContext, DragEndEvent, closestCenter, DragOverlay } from '@dnd-kit/core'
-import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable'
+import { DndContext, DragEndEvent, closestCenter } from '@dnd-kit/core'
+import { SortableContext } from '@dnd-kit/sortable'
 import { restrictToHorizontalAxis } from '@dnd-kit/modifiers'
 import { Lead, LeadStatus } from '@/lib/supabase/types'
 import { toast } from 'sonner'
-import { Card, CardContent } from '@/components/ui/card'
 import { LeadCard } from '@/components/leads/lead-card'
 
 const STATUS_CONFIG = {
@@ -85,7 +84,7 @@ export function LeadsBoard({ leads, onLeadUpdate, loading }: LeadsBoardProps) {
   }
 
   // Handle drag over to provide visual feedback
-  const handleDragOver = (event: any) => {
+  const handleDragOver = (event: DragEndEvent) => {
     const { active, over } = event
     if (!over) return
 

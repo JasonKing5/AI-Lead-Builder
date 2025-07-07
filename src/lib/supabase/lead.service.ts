@@ -1,5 +1,5 @@
 import { supabase } from './client'
-import { Lead, LeadInsert, LeadUpdate } from './types'
+import { LeadInsert, LeadUpdate } from './types'
 
 export const leadService = {
   async createLead(lead: LeadInsert) {

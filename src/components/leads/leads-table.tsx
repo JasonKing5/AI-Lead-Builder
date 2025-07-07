@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -15,7 +15,6 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 import { Lead, LeadStatus } from '@/lib/supabase/types'
-import { leadService } from '@/lib/supabase/lead.service'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
